@@ -3,6 +3,13 @@ version: '${project.version}'
 main: me.eclipseumbreon.playerhudv3.PlayerHudV3
 api-version: '1.20'
 commands:
+  playerhud:
+    aliases: ph
+    description: Opens the PlayerHud Menu. Text function compatible for some uses.
+
   test:
     aliases: t
     description: test
+  test2:
+    aliases: t2
+    description: test2
