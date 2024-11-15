@@ -1,5 +1,7 @@
 package me.eclipseumbreon.playerhudv3;
 
+import me.eclipseumbreon.playerhudv3.playerchest.PlayerStorage;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -12,49 +14,72 @@ public class Death {
     // Constant Declarations --------------------------------------------------
     private static final PlayerHudV3 plugin = PlayerHudV3.getPlugin();
 
-    private static final Map<Player, Set<Death>> playerDeathMap = new HashMap<>();
+    private static final Map<UUID, Set<Death>> playerDeathMap = new HashMap<>();
+
+    // Initialization ---------------------------------------------------------
+    public static void initialize(){
+        String red = EclipseColor.red;
+        String reset = EclipseColor.reset;
+        String aqua = EclipseColor.aqua;
+        for (Player player: Bukkit.getOnlinePlayers()){
+            player.sendMessage(red + "meow " + reset + "meow " + aqua + "meow");
+        }
+    }
 
     // In-Memory Functions ----------------------------------------------------
     private static void test(){
 
     }
 
-    public static boolean addDeath(Player deadPlayer, List<ItemStack> drops, int exp){
+    private static void addDeath(Death death){
+        UUID ownerID = death.getOwnerID();
+        Set<Death> deaths = playerDeathMap.getOrDefault(ownerID, new HashSet<>());
+        deaths.add(death);
+        playerDeathMap.put(ownerID, deaths);
+        // write to file
+        // write IDs to file
+    }
+
+    public static void createNew(Player deadPlayer, List<ItemStack> drops, int exp){
         String timeString = "timeString";
         boolean keepInventory = drops == null;
-        boolean keepExp = exp == -1;
+        //boolean keepExp = exp == -1;
 
         UUID uuid = deadPlayer.getUniqueId();
         Location location = deadPlayer.getLocation();
         Coordinate coordinate = new Coordinate(uuid, -1, "Death", "death", location, new ItemStack(Material.SKELETON_SKULL));
-        Death death = new Death(uuid,coordinate,drops,exp,timeString);
-
-
-        return true;
+        PlayerStorage playerStorage = null;
+        if (!keepInventory && drops.size() != 0){
+            boolean isLarge = drops.size() > 27;
+            playerStorage = PlayerStorage.createNewStorage(
+                    2, deadPlayer, deadPlayer.getName() + "'s Death", location, isLarge, drops
+            );
+        }
+        addDeath(new Death(uuid,coordinate,playerStorage,exp,timeString));
     }
 
 
     // Object-Instanced Functions and Declarations ---------------------------------------------------------------------
-    private UUID deadPlayer;
+    private UUID ownerID;
     private Coordinate coordinate;
-    List<ItemStack> items;
+    PlayerStorage playerStorage;
     int exp;
     String timeString;
 
-    public Death(UUID deadPlayer, Coordinate coordinate, List<ItemStack> items, int exp, String timeString){
-        this.deadPlayer = deadPlayer;
+    public Death(UUID ownerID, Coordinate coordinate, PlayerStorage playerStorage, int exp, String timeString){
+        this.ownerID = ownerID;
         this.coordinate = coordinate;
-        this.items = items;
+        this.playerStorage = playerStorage;
         this.exp = exp;
         this.timeString = timeString;
     }
 
-    public UUID getDeadPlayer() {
-        return deadPlayer;
+    public UUID getOwnerID() {
+        return ownerID;
     }
 
-    public void setDeadPlayer(UUID deadPlayer) {
-        this.deadPlayer = deadPlayer;
+    public void setOwnerID(UUID ownerID) {
+        this.ownerID = ownerID;
     }
 
     public Coordinate getCoordinate() {
@@ -65,12 +90,12 @@ public class Death {
         this.coordinate = coordinate;
     }
 
-    public List<ItemStack> getItems() {
-        return items;
+    public PlayerStorage getPlayerStorage() {
+        return playerStorage;
     }
 
-    public void setItems(List<ItemStack> items) {
-        this.items = items;
+    public void setPlayerStorage(PlayerStorage playerStorage) {
+        this.playerStorage = playerStorage;
     }
 
     public int getExp() {

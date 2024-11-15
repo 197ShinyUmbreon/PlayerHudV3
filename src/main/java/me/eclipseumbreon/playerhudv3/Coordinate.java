@@ -29,6 +29,9 @@ public class Coordinate {
 
     // Public Functions --------------------------------------------------------
     public static void initialize(){
+        populatePlayerCoordinates();
+    }
+    private static void populatePlayerCoordinates(){
         for (Player player: Bukkit.getOnlinePlayers()) populatePlayerCoordinates(player);
     }
     public static void populatePlayerCoordinates(Player player){ //PlayerJoinServer, Plugin Initialize
@@ -172,7 +175,9 @@ public class Coordinate {
     // File Functions -----------------------------------------------------------
     private static void updateUserCoordinateStorageFile(Player player){
         String uuid = player.getUniqueId().toString();
-        File csFile = new File(plugin.getDataFolder() + "/cs",uuid + ".yml");
+        String parent = plugin.getDataFolder() + "/cs";
+        String child = uuid + ".yml";
+        File csFile = new File(parent,child);
         YamlConfiguration csData = new YamlConfiguration();
         List<Coordinate> csList = coordinateMap.getOrDefault(player, new ArrayList<>());
         for (Coordinate coordinate:csList){
@@ -224,7 +229,9 @@ public class Coordinate {
             return;
         }
         try{
-            csFile.createNewFile();
+            if (csFile.createNewFile()){
+                PlayerHudV3.cOut(parent + "/" + child + "\n\tCoordinate Storage file created.");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

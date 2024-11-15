@@ -138,4 +138,29 @@ private static void saveCoordinateToFile(int number, UUID uuid, String name, Str
         System.out.println("Time String: " + textTime);
 
 
+        private static void writeIDListToFile(UUID ownerID){
+        Set<String> idList = new HashSet<>();
+        for (PlayerStorage playerStorage:playerStorageMap.get(ownerID)){
+        UUID containerID = playerStorage.getContainerID();
+        idList.add(containerID.toString());
+        }
+        String parent = plugin.getDataFolder() + "/ps/" + ownerID.toString();
+        String child = "IDs" + ".yml";
+        File idFile = new File(parent,child);
+        YamlConfiguration idData = YamlConfiguration.loadConfiguration(idFile);
+        idData.set("IDs", new ArrayList<String>(idList));
+        try{
+        idData.save(idFile);
+        }catch (IOException e) {
+        e.printStackTrace();
+        return;
+        }
+        try{
+        if (idFile.createNewFile()){
+        PlayerHudV3.cOut(parent + "/" + child + "\n\tPlayer ID file created.");
+        }
+        }catch (IOException e) {
+        e.printStackTrace();
+        }
+        }
 

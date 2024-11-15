@@ -57,7 +57,7 @@ public class Events implements Listener {
         }else{
             boolean isLarge = inv.getSize() == 54;
             List<ItemStack> contents = new ArrayList<>(Arrays.asList(inv.getStorageContents()));
-            PlayerStorage storage = PlayerStorage.createNewStorage(player, "Default Title", null, isLarge, contents);
+            PlayerStorage storage = PlayerStorage.createNewStorage(1,player, "Default Title", null, isLarge, contents);
             player.sendMessage("New Storage Created. ID: " + storage.getContainerID().toString());
         }
     }
@@ -115,9 +115,13 @@ public class Events implements Listener {
             player.sendMessage("No matching Player Storage found for given ID: " + containerID);
             return;
         }
-        pie.setCancelled(true);
-        player.swingMainHand();
-        playerStorage.openStorage(player);
+        boolean success = playerStorage.open(player);
+        if (success){
+            pie.setCancelled(true);
+            player.swingMainHand();
+        }else{
+            player.sendMessage("Failed to open storage.");
+        }
     }
 
     @EventHandler
@@ -137,7 +141,7 @@ public class Events implements Listener {
         if (pde.getKeepInventory()) drops = null;
         int exp = pde.getDroppedExp();
         if (pde.getKeepLevel()) exp = -1;
-        Death.addDeath(player, drops, exp);
+        Death.createNew(player, drops, exp);
 //        String biome = player.getWorld().getBiome(deathPoint).name();
 //        Coordinate.addCoordinate(player, biome + " Death Point", "death", deathPoint, new ItemStack(Material.SKELETON_SKULL));
     }

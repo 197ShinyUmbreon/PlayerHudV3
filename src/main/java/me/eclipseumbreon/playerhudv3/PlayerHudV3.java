@@ -32,12 +32,13 @@ public final class PlayerHudV3 extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
-        createCoordinateFileConfig();
+        //createCoordinateFileConfig();
         registerEvents();
         registerCommands();
         Players.initialize();
         Coordinate.initialize();
         PlayerStorage.initialize();
+        Death.initialize();
 
         if (debug) debugRuntime();
     }
@@ -79,33 +80,33 @@ public final class PlayerHudV3 extends JavaPlugin {
         target.sendMessage(headerColored + message);
     }
 
-    private File coordinateFile;
-    private FileConfiguration coordinateFileConfig;
-
-    public FileConfiguration getCoordinateFileConfig() {
-        return this.coordinateFileConfig;
-    }
-
-    private void createCoordinateFileConfig() {
-        coordinateFile = new File(this.getDataFolder(), "coordinates.yml");
-        if (!coordinateFile.exists()) {
-            if (!coordinateFile.getParentFile().mkdirs()){
-                System.out.println("Unable to create directory '" + coordinateFile.getParentFile().getPath() + "'");
-            }
-            this.saveResource("coordinates.yml", false);
-        }
-        coordinateFileConfig = new YamlConfiguration();
-        try {
-            coordinateFileConfig.load(coordinateFile);
-        } catch (IOException | InvalidConfigurationException ex) {
-            ex.printStackTrace();
-        }
-    }
-    public void saveCoordinateFile(){
-        try{
-            getCoordinateFileConfig().save(coordinateFile);
-        }catch (IOException ex){
-            ex.printStackTrace();
-        }
-    }
+//    private File coordinateFile;
+//    private FileConfiguration coordinateFileConfig;
+//
+//    public FileConfiguration getCoordinateFileConfig() {
+//        return this.coordinateFileConfig;
+//    }
+//
+//    private void createCoordinateFileConfig() {
+//        coordinateFile = new File(this.getDataFolder(), "coordinates.yml");
+//        if (!coordinateFile.exists()) {
+//            if (!coordinateFile.getParentFile().mkdirs()){
+//                System.out.println("Unable to create directory '" + coordinateFile.getParentFile().getPath() + "'");
+//            }
+//            this.saveResource("coordinates.yml", false);
+//        }
+//        coordinateFileConfig = new YamlConfiguration();
+//        try {
+//            coordinateFileConfig.load(coordinateFile);
+//        } catch (IOException | InvalidConfigurationException ex) {
+//            ex.printStackTrace();
+//        }
+//    }
+//    public void saveCoordinateFile(){
+//        try{
+//            getCoordinateFileConfig().save(coordinateFile);
+//        }catch (IOException ex){
+//            ex.printStackTrace();
+//        }
+//    }
 }

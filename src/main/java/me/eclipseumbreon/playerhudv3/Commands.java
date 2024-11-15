@@ -23,8 +23,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     return true;
                 }else if (sender instanceof Player){
                     Player player = (Player) sender;
-                    //open chest
-                    PlayerStorage.testOpenRandomStorage(player);
+                    //PlayerStorage.testOpenRandomStorage(player);
+                    PlayerStorage playerStorage = PlayerStorage.fetchRandomPlayerStorage(player);
+                    if (playerStorage != null){
+                        playerStorage.exportToBundle(player, true);
+                    }
                     return true;
                 }
             }else if (command.getName().matches("test2")){
@@ -82,6 +85,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     commands.addAll(csFunctions);
                 }else if (zero.matches("ps")){
                     commands.addAll(psFunctions);
+                }else if (zero.matches("dh")){
+                    commands.addAll(dhFunctions);
                 }
                 StringUtil.copyPartialMatches(one, commands, completions);
             }else if (size == 3){
@@ -111,7 +116,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                         commands.addAll(players);
                     }
                 }else if (zero.matches("ps")){
-                    if (one.matches("list") || one.matches("open")){
+                    if (one.matches("list") || one.matches("open") || one.matches("export")){
+                        if (player.isOp()){
+                            commands.addAll(Players.getJoinedPlayerNames());
+                        }else{
+                            commands.add(player.getName());
+                        }
+                    }
+                }else if (zero.matches("dh")){
+                    if (one.matches("list")){
                         if (player.isOp()){
                             commands.addAll(Players.getJoinedPlayerNames());
                         }else{
@@ -132,13 +145,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                         commands.add("<New Name>"); // better way to show context?
                     }
                 }else if (zero.matches("ps")){
-                    if (one.matches("open")){
-                        commands.addAll(PlayerStorage.listOfContainerIDs(player.getUniqueId()));
+                    if (one.matches("open") || one.matches("export")){
+                        UUID targetPlayerID = Players.getPlayerUUIDFromName(two);
+                        commands.addAll(PlayerStorage.listOfContainerIDs(targetPlayerID));
                     }else if (one.matches("list")){
                         // empty
                     }
                 }
                 StringUtil.copyPartialMatches(two, commands, completions);
+            }else if (size == 5){
+                String zero = args[0];
+                String one = args[1];
+                String two = args[2];
+                String three = args[3];
+                String four = args[4];
+                if (zero.matches("ps")){
+                    if (one.matches("export")){
+                        commands.addAll(List.of("true", "false"));
+                    }
+                }
             }
         }
         Collections.sort(completions);
@@ -163,7 +188,7 @@ public class Commands implements CommandExecutor, TabCompleter {
     "cs" = Coordinate Storage
     "ps" = Player Storage
      */
-    private static final List<String> mainFunctions = List.of("cs", "ps");
+    private static final List<String> mainFunctions = List.of("cs", "ps", "dh");
     private static void argsHandler(Player player, String[] args){
         if (debug) System.out.println(player.getName() + " sent '/playerhud '" + Arrays.toString(args) + "'");
         String func = args[0];
@@ -180,10 +205,28 @@ public class Commands implements CommandExecutor, TabCompleter {
             coordinateStorage(player, argsList);
         }else if (func.matches("ps")){
             playerStorage(player, argsList);
+        }else if (func.matches("dh")){
+            deathHelper(player, argsList);
         }
     }
+
+    // Death Helper ----------------------------------------------------------------------------------------------------
+    private static final List<String> dhFunctions = List.of("list");
+    private static final String dhHeader = ChatColor.GOLD + "Death Helper:" + ChatColor.RESET + " ";
+    private static void deathHelper(Player player, List<String> args){
+        if (args.size() == 0){
+            sendMessage(player, dhHeader + ChatColor.RED + "No arguments..");
+            return;
+        }
+        String func = args.get(0);
+        args.remove(0);
+        if (func.matches("help")){
+            listOutFunctions(player, dhFunctions, dhHeader);
+        }
+    }
+
     // Player Storage --------------------------------------------------------------------------------------------------
-    private static final List<String> psFunctions = List.of("list", "open");
+    private static final List<String> psFunctions = List.of("list", "open", "export");
     private static final String psHeader = ChatColor.GOLD + "Player Storage:" + ChatColor.RESET + " ";
     private static void playerStorage(Player player, List<String> args){
         if (args.size() == 0){
@@ -198,6 +241,8 @@ public class Commands implements CommandExecutor, TabCompleter {
             psList(player, args);
         }else if (func.matches("open")){
             psOpen(player, args);
+        }else if (func.matches("export")){
+            psExport(player, args);
         }
     }
     private static void psList(Player player, List<String> args){
@@ -213,7 +258,6 @@ public class Commands implements CommandExecutor, TabCompleter {
             );
             return;
         }
-
         List<String> containerIDStrings = PlayerStorage.listOfContainerIDs(targetPlayerUUID);
         if (containerIDStrings.size() == 0){
             sendMessage(player, psHeader + ChatColor.RED + "No saved Storages..");
@@ -234,8 +278,10 @@ public class Commands implements CommandExecutor, TabCompleter {
     private static void psOpen(Player player, List<String> args){
         if (args.size() == 0){
             sendMessage(player, psHeader + ChatColor.RED + "No Player name given..");
+            return;
         }else if (args.size() == 1){
             sendMessage(player, psHeader + ChatColor.RED + "No Storage ID given..");
+            return;
         }else if (args.size() > 2){
             sendMessage(player, psHeader + ChatColor.RED + "Too many arguments..");
             return;
@@ -252,16 +298,75 @@ public class Commands implements CommandExecutor, TabCompleter {
             );
             return;
         }
-        List<String> containerIDStrings = PlayerStorage.listOfContainerIDs(targetPlayerUUID);
+        List<String> containerIDStrings = PlayerStorage.listOfContainerIDs();
         String parsedIDString = args.get(1);
         for (String containerIDString:containerIDStrings){
             if (parsedIDString.matches(containerIDString)){
-                PlayerStorage.openTargetPlayerStorage(player, UUID.fromString(containerIDString));
-                sendMessage(player, psHeader + ChatColor.YELLOW + "Opened Storage: " + ChatColor.AQUA + containerIDString);
-                break;
+                UUID containerID = UUID.fromString(containerIDString);
+                PlayerStorage playerStorage = PlayerStorage.getPlayerStorageFromID(containerID);
+                if (playerStorage == null){
+                    sendMessage(player, psHeader + ChatColor.RED + "An error occurred while parsing the PlsyerStorage from the containerID.");
+                    return;
+                }
+                boolean success = playerStorage.open(player);
+                if (success){
+                    sendMessage(player, psHeader + ChatColor.YELLOW + "Opened Storage: " + ChatColor.AQUA + containerIDString);
+                }else{
+                    sendMessage(player, psHeader + ChatColor.RED + "Unable to open Storage: " + ChatColor.AQUA + containerIDString + ChatColor.RED + "..");
+                }
+                return;
             }
         }
+        sendMessage(player, psHeader + ChatColor.RED + "Could not match given containerID to an existing container.");
+    }
 
+    private static void psExport(Player player, List<String> args){
+        if (args.size() == 0){
+            sendMessage(player, psHeader + ChatColor.RED + "No Player name given..");
+            return;
+        }else if (args.size() == 1){
+            sendMessage(player, psHeader + ChatColor.RED + "No Storage ID given..");
+            return;
+        }else if (args.size() > 3){
+            sendMessage(player, psHeader + ChatColor.RED + "Too many arguments..");
+            return;
+        }
+        String targetPlayerString = args.get(0);
+        System.out.println(targetPlayerString);
+        UUID targetPlayerUUID = Players.getPlayerUUIDFromName(targetPlayerString);
+        if (targetPlayerUUID == null){
+            sendMessage(
+                player, psHeader +
+                    ChatColor.RED + "Could not find Player of name '" +
+                    ChatColor.AQUA + targetPlayerString +
+                    ChatColor.RED + "'..."
+            );
+            return;
+        }
+        List<String> containerIDStrings = PlayerStorage.listOfContainerIDs();
+        String parsedIDString = args.get(1);
+        boolean removeStorage = false;
+        if (args.size() == 3){
+            removeStorage = Boolean.parseBoolean(args.get(2));
+        }
+        for (String containerIDString:containerIDStrings){
+            if (parsedIDString.matches(containerIDString)){
+                UUID containerID = UUID.fromString(containerIDString);
+                PlayerStorage playerStorage = PlayerStorage.getPlayerStorageFromID(containerID);
+                if (playerStorage == null){
+                    sendMessage(player, psHeader + ChatColor.RED + "An error occurred while parsing the PlayerStorage from the containerID.");
+                    return;
+                }
+                boolean success = playerStorage.exportToBundle(player,removeStorage);
+                if (success){
+                    sendMessage(player, psHeader + ChatColor.YELLOW + "Exported Storage: " + ChatColor.AQUA + containerIDString);
+                }else{
+                    sendMessage(player, psHeader + ChatColor.RED + "Unable to export Storage: " + ChatColor.AQUA + containerIDString + ChatColor.RED + "..");
+                }
+                return;
+            }
+        }
+        sendMessage(player, psHeader + ChatColor.RED + "Could not match given containerID to an existing container.");
     }
 
     // Coordinate Storage -----------------------------------------------------------------------------------------------

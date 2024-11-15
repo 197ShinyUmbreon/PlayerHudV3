@@ -1,5 +1,6 @@
 package me.eclipseumbreon.playerhudv3;
 
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -13,6 +14,9 @@ public class Players {
 
     public static void initialize(){
         loadPlayersFromFile();
+        for (Player onlinePlayer: Bukkit.getOnlinePlayers()){
+            addJoinedPlayer(onlinePlayer);
+        }
     }
 
     private static final Map<UUID,String> joinedPlayersMap = new HashMap<>();
@@ -75,7 +79,9 @@ public class Players {
     }
 
     private static void writePlayersToFile(){
-        File pFile = new File(plugin.getDataFolder() + "/p","joinedPlayers" + ".yml");
+        String parent = plugin.getDataFolder() + "/p";
+        String child = "joinedPlayers" + ".yml";
+        File pFile = new File(parent,child);
         YamlConfiguration pData = new YamlConfiguration();
 //        for (UUID uuid: joinedPlayersMap.keySet()){
 //            String name = joinedPlayersMap.get(uuid);
@@ -98,8 +104,10 @@ public class Players {
             return;
         }
         try{
-            pFile.createNewFile();
-        } catch (IOException e) {
+            if (pFile.createNewFile()){
+                PlayerHudV3.cOut(parent + "/" + child + "\n\tPlayer file created.");
+            }
+        }catch (IOException e) {
             e.printStackTrace();
         }
     }
